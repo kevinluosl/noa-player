@@ -283,8 +283,8 @@ var hp_player = (function() {
 		return;
 	}
 
-	var host_url = 'http://localhost:8888/html5_player/';
-//	var host_url = 'http://115.28.165.154/luo/noa_player/';
+//	var host_url = 'http://10.0.0.2:8888/noaplayer/';
+	var host_url = 'http://115.28.165.154/luo/noa_player/';
 	var css = document.createElement( 'link' );
 	css.setAttribute( 'rel', 'stylesheet' );
 	css.setAttribute( 'media', 'all' );
