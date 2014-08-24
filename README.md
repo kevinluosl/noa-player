@@ -3,7 +3,7 @@ NOA-Player
 
 HTML5 无广告播放器
 
-
+![搜狐播放截图](http://luo.today/style/images/sh.png?raw=true "搜狐播放截图")
 
 使用说明
 =========
