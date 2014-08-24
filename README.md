@@ -3,7 +3,7 @@ NOA-Player
 
 HTML5 无广告播放器
 
-![Alt text](http://luo.today/style/images/screen.png?raw=true "Optional Title")
+
 
 使用说明
 =========
