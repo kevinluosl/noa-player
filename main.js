@@ -282,13 +282,13 @@ var hp_player = (function() {
 		return;
 	}
 
-//	var host_url = 'http://10.0.0.2:8888/noaplayer/';
+//	var host_url = 'http://localhost:8888/noaplayer/';
 	var host_url = 'http://115.28.165.154/luo/noa_player/';
 	var css = document.createElement( 'link' );
 	css.setAttribute( 'rel', 'stylesheet' );
 	css.setAttribute( 'media', 'all' );
 	css.setAttribute( 'hp_player', 'true' );
-	css.setAttribute( 'href', host_url + 'style/application.css' );
+	css.setAttribute( 'href', host_url + 'style/application.css?t=' + (new Date().getTime()) );
 
 	document.head.appendChild( css );
 
@@ -339,6 +339,8 @@ var hp_player = (function() {
 
 	function run() {
 
+		initKeyboardEvents()
+
 		jQuery( '.hp-close-btn' ).click( function() {
 			jQuery( '.hp-video-player' ).remove();
 
@@ -356,6 +358,55 @@ var hp_player = (function() {
 		} else if ( window.location.href.indexOf( 'youku' ) >= 0 ) {
 			getYData();
 		}
+	}
+
+	function initKeyboardEvents() {
+		jQuery( 'body' ).unbind( 'keydown' ).bind( 'keydown', function( e ) {
+			if ( jQuery( '#noa_video_1' ).length > 0 ) {
+				var video = jQuery( '#noa_video_1' )[0];
+
+				//Space play/pause
+				if ( e.which === 32 && video.readyState === 4 ) {
+					if ( video.paused ) {
+						video.play();
+					} else {
+						video.pause();
+					}
+				}
+
+				//forward 30 secs
+				if ( e.which === 39 && video.readyState === 4 ) {
+					video.currentTime = video.currentTime + 30;
+				}
+
+				//back 30 secs
+				if ( e.which === 37 && video.readyState === 4 ) {
+					video.currentTime = video.currentTime - 30;
+				}
+
+				//up volume
+				if ( e.which === 38 && video.readyState === 4 ) {
+					if ( video.volume + 0.1 < 1 ) {
+						video.volume += 0.1;
+					} else {
+						video.volume = 1;
+					}
+
+				}
+
+				//down volume
+				if ( e.which === 40 && video.readyState === 4 ) {
+					if ( video.volume - 0.1 > 0 ) {
+						video.volume -= 0.1;
+					} else {
+						video.volume = 0;
+					}
+
+				}
+
+			}
+
+		} );
 	}
 
 	function getSHData( v_id ) {
@@ -456,7 +507,12 @@ var hp_player = (function() {
 //
 //		jQuery( video_2 ).unbind( 'ended' ).bind( 'ended', playNext );
 
-		video.firstElementChild.setAttribute( 'src', urlList[current_index] );
+		if ( SH_last_part ) {
+			video.firstElementChild.setAttribute( 'src', urlList[SH_last_part] );
+			SH_last_part = null;
+		} else {
+			video.firstElementChild.setAttribute( 'src', urlList[current_index] );
+		}
 
 //		if ( current_index + 1 < length ) {
 //			video_2.firstElementChild.setAttribute( 'src', urlList[current_index + 1] );
@@ -478,6 +534,11 @@ var hp_player = (function() {
 //			}
 
 			e.target.play();
+
+			if ( SH_last_time ) {
+				e.target.currentTime = SH_last_time;
+				SH_last_time = null;
+			}
 			highlightPlayingPartBox( e.target.firstElementChild.getAttribute( 'src' ) );
 		}
 
@@ -546,7 +607,6 @@ var hp_player = (function() {
 					var target = jQuery( e.target );
 
 					var videoId = target.attr( 'videoId' );
-
 					stopVideo();
 					getSHData( videoId );
 
@@ -565,28 +625,92 @@ var hp_player = (function() {
 	}
 
 	var SH_video_result = false;
+	//save last select res, use when load new video set
+	var SH_last_res = 2;
+	//save last select part, use when playVideoList
+	var SH_last_part = null;
+	//save last play time, use when playVideoList
+	var SH_last_time = null;
+
+	function setSHVideoResolutionBoxes() {
+
+		jQuery( '.noa-res-list' ).remove();
+
+		var resolution_box_div = jQuery( '<div class="noa-res-list"></div>' );
+		var item_box;
+		if ( SH_video_result.data.url_nor_mp4 ) {
+			addBox( SH_video_result.data.url_nor_mp4, '标清', 1 );
+		}
+
+		if ( SH_video_result.data.url_high_mp4 ) {
+			addBox( SH_video_result.data.url_high_mp4, '高清', 2 );
+		}
+
+		if ( SH_video_result.data.url_super_mp4 ) {
+			addBox( SH_video_result.data.url_super_mp4, '超清', 3 );
+		}
+
+		function addBox( path, label, level ) {
+			item_box = jQuery( '<span class="item-box"></span>' );
+			item_box.text( label );
+			item_box.attr( 'video_path', path );
+			item_box.attr( 'level', level );
+			var current_video_path = jQuery( '#noa_video_1_source' ).attr( 'src' );
+			if ( path.indexOf( current_video_path ) >= 0 ) {
+				item_box.addClass( 'selected-res-box' );
+			}
+			resolution_box_div.append( item_box );
+
+			item_box.unbind( 'click' ).bind( 'click', function( e ) {
+
+				resolution_box_div.find( '.selected-res-box' ).removeClass( 'selected-res-box' );
+				var target = jQuery( e.currentTarget );
+
+				SH_last_res = parseInt( target.attr( 'level' ) );
+				SH_last_part = jQuery( '.noa-part-list' ).find( '.selected-part-box' ).attr( 'index' );
+				SH_last_time = jQuery( '#noa_video_1' )[0].currentTime;
+
+				var video_path_array = target.attr( 'video_path' ).split( ',' );
+				playVideoList( video_path_array );
+				target.addClass( 'selected-res-box' );
+
+			} );
+
+		}
+
+		jQuery( '.noa-video-div' ).append( resolution_box_div );
+
+	}
 
 	function setSHVideo( result ) {
 
 		SH_video_result = result;
 
-		var video_path = result.data.url_nor_mp4;
+		var video_path;
 
-		if ( result.data.url_super_mp4 || !result.data.url_nor_mp4 ) {
+		if ( SH_last_res === 1 ) {
+			video_path = result.data.url_nor_mp4;
+		} else if ( SH_last_res === 2 ) {
 			video_path = result.data.url_high_mp4;
+		} else {
+			video_path = result.data.url_super_mp4;
 		}
 
-//		video_path = 'http://hot.vrs.sohu.com/ipad1951861_4619017680457_4162182.m3u8?plat=17&vid=1951861&uid=1408211753290064&plat=17&pt=3&prod=h5&pg=1&eye=0&cateCode=101'
+		if ( !video_path ) {
+			video_path = result.data.url_nor_mp4;
+			if ( result.data.url_super_mp4 || !result.data.url_nor_mp4 ) {
+				video_path = result.data.url_high_mp4;
+			}
+		}
 
-//		video_path = "http://data.vod.itc.cn/?new=/192/214/R1zN98qQEVxs8tzHUycKEY.mp4&vid=1951861&plat=17&mkey=bLvX6ixSfF4BMyL4k5VUXtD9TIgACNbj&ch=tv,http://data.vod.itc.cn/?new=/6/154/8V4arI7rIgtPdIds5Ng5DE.mp4&vid=1951861&plat=17&mkey=fSMX6vy16cgBb1b7gV6RQUogxsKFsrL6&ch=tv,http://data.vod.itc.cn/?new=/16/98/TTJvABj3T9dHm8CesexfqC.mp4&vid=1951861&plat=17&mkey=bu0lu7u2XZdJ2vdXy_psJKTK930i81uA&ch=tv,http://data.vod.itc.cn/?new=/147/37/y6hHErQtSgWjv31U4o0MTA.mp4&vid=1951861&plat=17&mkey=SdOyLYwrloolaIqYGFXpipEPr_BBsp1o&ch=tv,http://data.vod.itc.cn/?new=/190/142/JGAjDwd3RfmcshKOjo279B.mp4&vid=1951861&plat=17&mkey=6chvE2hfFCg_hV3aalcZEGn-r3YDk1gK&ch=tv,http://data.vod.itc.cn/?new=/163/211/9LDJGWWxJ3NSWNx9lasXoL.mp4&vid=1951861&plat=17&mkey=QIuu4V4XyKZdh0uzZkKIGtSk3P_c72y4&ch=tv,http://data.vod.itc.cn/?new=/189/175/HWvGi4XNQ87MPR9Iz0MHqA.mp4&vid=1951861&plat=17&mkey=L9c4zFwXDxu2QCGs-2UX4ySSz7NSRv0i&ch=tv";
-//		video_path = 'http://hot.vrs.sohu.com/ipad1948214_4619940791145_4159535.m3u8?plat=17&vid=1948214&uid=1408211753290064&plat=17&pt=3&prod=h5&pg=1&eye=0&cateCode=101'
 		var video_path_array = video_path.split( ',' );
 		jQuery( '.noa-video-title' ).text( result.data.video_name );
 
 		playVideoList( video_path_array );
+		setSHVideoResolutionBoxes();
 
 		var api = new ServiceCaller();
-		api.callSHVideoList( playlistId, vid )
+		api.callSHVideoList( playlistId, vid );
 	}
 
 	function createYMp4Url( data, sid, token, oip ) {

@@ -91,7 +91,7 @@
     left: 805px;
     width: 150px;
     text-align: left;
-    height: 480px;
+    height: 448px;
     overflow: auto;
 }
 
@@ -106,6 +106,31 @@
 }
 
 .noa-part-list .selected-part-box {
+    background: #194e6f;
+    color: #ffffff;
+}
+
+.noa-res-list {
+    position: absolute;
+    top: 13px;
+    left: -50px;
+    width: 50px;
+    text-align: left;
+    height: 480px;
+    overflow: auto;
+}
+
+.noa-res-list .item-box {
+    border: 1px solid;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #eeeeee;
+    width: 30px;
+    display: inline-block;
+}
+
+.noa-res-list .selected-res-box {
     background: #194e6f;
     color: #ffffff;
 }
