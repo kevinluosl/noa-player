@@ -8,6 +8,8 @@
     background: #000000;
     text-align: center;
     vertical-align: middle;
+    color: #ffffff;
+    font-family: "Microsoft YaHei", "微软雅黑", STHei, "华文黑体", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .noa-video-div {
@@ -21,7 +23,7 @@
 
 .hp-loading-video {
     font-size: 13px;
-    position: fixed;
+    position: absolute;
     top: 0px;
     left: 0px;
     right: 0px;
@@ -29,7 +31,7 @@
 }
 
 .hp-close-btn {
-    position: fixed;
+    position: absolute;
     right: 5px;
     top: 10px;
     font-size: 30px;
@@ -43,6 +45,9 @@
     vertical-align: middle;
     width: 800px;
     height: 480px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
 
 }
 
@@ -53,9 +58,10 @@
     left: 0px;
     width: 800px;
     text-align: left;
-    height: 100px;
+    height: 55px;
     overflow: auto;
     margin: auto;
+    overflow-y: hidden;
 }
 
 .video-list .item-box {
@@ -82,6 +88,7 @@
     text-align: left;
     right: 0px;
     margin: auto;
+    z-index: 10003;
 
 }
 
@@ -133,4 +140,45 @@
 .noa-res-list .selected-res-box {
     background: #194e6f;
     color: #ffffff;
+}
+
+/*:-webkit-full-screen #noa_video_1 {*/
+/*width: 100%;*/
+/*height: 100%;*/
+/*}*/
+
+/*:-webkit-full-screen #noa_video_2 {*/
+/*width: 100%;*/
+/*height: 100%;*/
+/*}*/
+
+.home-page {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+
+}
+
+.home-page a, .home-page a:active .home-page a:hover {
+    color: #ffffff;
+}
+
+.hp-video-player .error {
+    position: absolute;
+    top: 300px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.hp-video-player .error-2 {
+    position: absolute;
+    top: 330px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    font-size: 12px;
+    cursor: pointer;
 }
