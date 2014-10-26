@@ -217,13 +217,15 @@ var hp_player = (function() {
 		var other_params = 'plat=17&sver=4.0&partner=78&site=1';
 
 		var y_url = 'http://v.youku.com/player/getPlayList/VideoIDS/';
+		var qy_url = 'http://cache.m.iqiyi.com/jp/tmts/';
 
 		return {
 			api_key: api_key,
 			url: url,
 			other_params: other_params,
 			y_url: y_url,
-			sh_video_list_url: sh_video_list_url
+			sh_video_list_url: sh_video_list_url,
+			qy_url: qy_url
 		}
 
 	})();
@@ -271,6 +273,19 @@ var hp_player = (function() {
 
 				}
 			);
+		},
+
+		callQY: function( tvid, v_id, u_id, qyid, src, rest_params_str ) {
+			jQuery.ajax(
+				{
+					dataType: 'jsonp',
+					type: 'GET',
+					async: true,
+					contentType: 'text/javascript',
+					url: Config.qy_url + tvid + '/' + v_id + '/?uid=' + u_id + '&cupid=qc_100001_100103&type=mp4&platForm=h5&' + rest_params_str + 'callback=qy_video_json'
+
+				}
+			);
 		}
 
 	} );
@@ -301,25 +316,40 @@ var hp_player = (function() {
 
 		var video_template = '<div class="noa-video-div">' +
 			'<span class="noa-video-title"></span>' +
-			'<video id="noa_video_1" class="video-js" poster="#000000" controls preload="metadata" ' +
+			'<video id="noa_video_1" class="video-js" style="z-index: 10001" poster="#000000" controls ' +
 			'width="800" height="480"' +
 			' >' +
 			'<source id="noa_video_1_source"  type="video/mp4" >' +
 			'</video>' +
-			'<video id="noa_video_2" style="display: none" class="video-js" poster="#000000" controls preload="metadata" ' +
-			'width="800" height="480"' +
-			' >' +
-			'<source id="noa_video_2_source"  type="video/mp4" >' +
-			'</video>' +
+//			'<video id="noa_video_2" class="video-js" style="z-index: 10000" poster="#000000" preload="auto" ' +
+//			'width="800" height="480"' +
+//			' >' +
+//			'<source id="noa_video_2_source"  type="video/mp4" >' +
+//			'</video>' +
+			'</div>' +
 			'<span class="hp-loading-video">Loading...</span>' +
-			'<span class="hp-close-btn">X</span>' +
-			'</div>';
+			'<span class="hp-close-btn">X</span>';
 //			'type="application/vnd.apple.mpegurl">' +
 //		var video_player = jQuery( video_template );
 
 		div.innerHTML = video_template;
 
 		document.body.appendChild( div );
+
+		var home_page = document.createElement( 'span' );
+		home_page.setAttribute( 'class', 'home-page' );
+
+		home_page.innerHTML = '<a href="http://luo.today" target="_blank">关于播放器</a>';
+
+		document.getElementsByClassName( 'hp-video-player' )[0].appendChild( home_page );
+
+		if ( window.location.href.indexOf( 'iqiyi' ) > 0 ) {
+			var jquery = document.createElement( 'script' );
+			jquery.setAttribute( 'src', 'https://code.jquery.com/jquery-1.11.1.min.js' );
+			jquery.setAttribute( 'hp_player', true );
+			jquery.setAttribute( 'charset', 'UTF-8' );
+			document.body.appendChild( jquery );
+		}
 
 		if ( typeof jQuery != 'undefined' ) {
 			run();
@@ -339,7 +369,7 @@ var hp_player = (function() {
 
 	function run() {
 
-		initKeyboardEvents()
+		initKeyboardEvents();
 
 		jQuery( '.hp-close-btn' ).click( function() {
 			jQuery( '.hp-video-player' ).remove();
@@ -347,16 +377,24 @@ var hp_player = (function() {
 			jQuery( 'script[hp_player=true]' ).remove();
 			jQuery( 'link[hp_player=true]' ).remove();
 			jQuery( '#player' ).show();
+			jQuery( '#flash' ).show();
 		} );
 
 		if ( jQuery( '#player' ).length > 0 ) {
 			jQuery( '#player' ).hide();
 		}
 
+		if ( jQuery( '#flash' ).length > 0 ) {
+			jQuery( '#flash' ).hide();
+		}
+
 		if ( window.location.href.indexOf( 'sohu' ) >= 0 ) {
 			getSHData();
 		} else if ( window.location.href.indexOf( 'youku' ) >= 0 ) {
 			getYData();
+		} else if ( window.location.href.indexOf( 'iqiyi' ) >= 0 ) {
+			getQYData();
+
 		}
 	}
 
@@ -420,6 +458,46 @@ var hp_player = (function() {
 
 	}
 
+	function getQYData( v_id ) {
+		var api = new ServiceCaller();
+		if ( !v_id ) {
+			v_id = jQuery( "#flashbox" ).attr( "data-player-videoid" );
+		}
+
+		var tvid = jQuery( "#flashbox" ).attr( "data-player-tvid" );
+
+		var qyid = Q.cookie.get( "QC006" );
+
+		var src = 'd846d0c32d664d32b6b54ea48997a589';
+
+		if ( typeof window.weorjjigh !== 'undefined' ) {
+			var rest_params = window.weorjjigh( tvid );
+
+			var rest_params_str = '';
+
+			for ( var key in rest_params ) {
+				rest_params_str = rest_params_str + key + '=' + rest_params[key] + '&';
+			}
+		} else {
+			rest_params_str = '';
+
+		}
+
+		var flash_vars = jQuery( '[name="flashVars"]' ).attr( "value" ).split( "&" );
+
+		var u_id = '';
+		for ( var i = 0; i < flash_vars.length; i++ ) {
+			var item = flash_vars[i];
+
+			if ( item.indexOf( 'passportID' ) >= 0 ) {
+				u_id = item.split( '=' )[1];
+			}
+		}
+
+		api.callQY( tvid, v_id, u_id, qyid, src, rest_params_str );
+
+	}
+
 	function getYData( vid ) {
 		var api = new ServiceCaller();
 
@@ -470,10 +548,12 @@ var hp_player = (function() {
 		jQuery( 'span[video_path="' + url + '"]' ).addClass( 'selected-part-box' );
 	}
 
+	//Use video 2 to preload next video and set srce to video 1 when video 1 end, not sure if this way can save time when loading video, let's see
 	function playVideoList( urlList, start_index ) {
 
 		jQuery( '.hp-loading-video' ).show();
 		var length = urlList.length;
+		var timeout_timer;
 
 		if ( !start_index ) {
 			start_index = 0;
@@ -488,10 +568,10 @@ var hp_player = (function() {
 		var video = jQuery( '#noa_video_1' )[0];
 //		var video_2 = jQuery( '#noa_video_2' )[0];
 
-		video.firstElementChild.setAttribute( 'src', '' );
+//		video.firstElementChild.setAttribute( 'src', '' );
 //		video_2.firstElementChild.setAttribute( 'src', '' );
 
-		jQuery( video ).show();
+//		jQuery( video ).show();
 //		jQuery( video_2 ).hide();
 //		var current_video = video;
 //		var next_video = video_2;
@@ -503,23 +583,33 @@ var hp_player = (function() {
 		jQuery( video ).unbind( 'canplay' ).bind( 'canplay', onCanPlay );
 
 		jQuery( video ).unbind( 'ended' ).bind( 'ended', playNext );
-//		jQuery( video_2 ).unbind( 'canplay' ).bind( 'canplay', onCanPlay );
+
+//		jQuery( video ).bind( 'webkitfullscreenchange mozfullscreenchange fullscreenchange', function( e ) {
+//			var state = document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen;
+//			var event = state ? 'FullscreenOn' : 'FullscreenOff';
 //
+//			// Now do something interesting
+////			alert( 'Event: ' + event );
+//		} );
+
+//		jQuery( video_2 ).unbind( 'canplay' ).bind( 'canplay', onCanPlay );
+
 //		jQuery( video_2 ).unbind( 'ended' ).bind( 'ended', playNext );
 
-		if ( SH_last_part ) {
-			video.firstElementChild.setAttribute( 'src', urlList[SH_last_part] );
-			SH_last_part = null;
-		} else {
-			video.firstElementChild.setAttribute( 'src', urlList[current_index] );
+		jQuery( video ).unbind( 'error' ).bind( 'error', onError );
+
+//		jQuery( video_2 ).unbind( 'error' ).bind( 'error', onError );
+
+		if ( last_play_index ) {
+			current_index = last_play_index;
+			last_play_index = null;
 		}
 
-//		if ( current_index + 1 < length ) {
-//			video_2.firstElementChild.setAttribute( 'src', urlList[current_index + 1] );
-//		}
+		startLoad();
 
-		video.load();
-//		video_2.load();
+		function onError( e ) {
+			startLoad();
+		}
 
 		function onPlaying() {
 			jQuery( '.hp-loading-video' ).hide();
@@ -533,26 +623,54 @@ var hp_player = (function() {
 //				console.log( ('next video is ready') )
 //			}
 
+			clearTimeout( timeout_timer );
+
 			e.target.play();
 
-			if ( SH_last_time ) {
-				e.target.currentTime = SH_last_time;
-				SH_last_time = null;
+			if ( last_play_time ) {
+				e.target.currentTime = last_play_time;
+				last_play_time = null;
 			}
+
+//			if ( current_index + 1 < length ) {
+//				video_2.firstElementChild.setAttribute( 'src', urlList[current_index + 1] );
+//				video_2.load();
+//			}
+
 			highlightPlayingPartBox( e.target.firstElementChild.getAttribute( 'src' ) );
 		}
 
 		function playNext() {
 			current_index = current_index + 1;
 
-			video.firstElementChild.setAttribute( 'src', urlList[current_index] );
+//			next_video.play();
+//			jQuery( next_video ).show();
+
+//			jQuery( current_video ).hide();
+
+//			var temp = current_video;
+//			current_video = next_video;
+//			next_video = temp;
+
+			startLoad();
+
 //			if ( current_index + 1 < length ) {
-//				video_2.firstElementChild.setAttribute( 'src', urlList[current_index + 1] );
-//				video_2.load();
+//				next_video.firstElementChild.setAttribute( 'src', urlList[current_index] );
+//				next_video.load();
 //			}
 
-			video.load();
+		}
 
+		function startLoad() {
+			video.pause();
+			video.firstElementChild.setAttribute( 'src', '' );
+			video.firstElementChild.setAttribute( 'src', urlList[current_index] );
+			video.load();
+			timeout_timer = setTimeout( function() {
+				if ( video.readyState != 4 ) {
+					startLoad();
+				}
+			}, 8000 );
 		}
 
 	}
@@ -593,8 +711,10 @@ var hp_player = (function() {
 	}
 
 	function setSHVideoList( result ) {
+
+		var total_width = 0;
 		if ( result.hasOwnProperty( 'videos' ) && result.videos.length > 0 && jQuery( '.video-list' ).length === 0 ) {
-			var video_list_div = jQuery( '<div class="video-list"></div>' );
+			var video_list_div = jQuery( '<div class="video-list"><div></div></div>' );
 
 			for ( var i = 0; i < result.videos.length; i++ ) {
 				var list_item = result.videos[i];
@@ -612,11 +732,22 @@ var hp_player = (function() {
 
 				} );
 
-				video_list_div.append( list_item_box );
+				video_list_div.children().eq( 0 ).append( list_item_box );
 
 			}
 
 			jQuery( '.noa-video-div' ).append( video_list_div );
+
+			var item_list = video_list_div.find( '.item-box' );
+
+			if ( item_list.length > 0 ) {
+				for ( i = 0; i < item_list.length; i++ ) {
+					total_width = total_width + item_list.eq( i ).width() + 18;
+				}
+
+				video_list_div.children().eq( 0 ).width( total_width + 50 );
+			}
+
 		}
 
 		jQuery( '.selected-item-box' ).removeClass( 'selected-item-box' );
@@ -628,26 +759,27 @@ var hp_player = (function() {
 	//save last select res, use when load new video set
 	var SH_last_res = 2;
 	//save last select part, use when playVideoList
-	var SH_last_part = null;
+	var last_play_index = null;
 	//save last play time, use when playVideoList
-	var SH_last_time = null;
+	var last_play_time = null;
 
-	function setSHVideoResolutionBoxes() {
+	function setSHVideoResolutionBoxes( url_type ) {
 
 		jQuery( '.noa-res-list' ).remove();
 
 		var resolution_box_div = jQuery( '<div class="noa-res-list"></div>' );
 		var item_box;
-		if ( SH_video_result.data.url_nor_mp4 ) {
-			addBox( SH_video_result.data.url_nor_mp4, '标清', 1 );
+
+		if ( SH_video_result.data['url_nor' + url_type] ) {
+			addBox( SH_video_result.data['url_nor' + url_type], '标清', 1 );
 		}
 
-		if ( SH_video_result.data.url_high_mp4 ) {
-			addBox( SH_video_result.data.url_high_mp4, '高清', 2 );
+		if ( SH_video_result.data['url_high' + url_type] ) {
+			addBox( SH_video_result.data['url_high' + url_type], '高清', 2 );
 		}
 
-		if ( SH_video_result.data.url_super_mp4 ) {
-			addBox( SH_video_result.data.url_super_mp4, '超清', 3 );
+		if ( SH_video_result.data['url_super' + url_type] ) {
+			addBox( SH_video_result.data['url_super' + url_type], '超清', 3 );
 		}
 
 		function addBox( path, label, level ) {
@@ -667,8 +799,8 @@ var hp_player = (function() {
 				var target = jQuery( e.currentTarget );
 
 				SH_last_res = parseInt( target.attr( 'level' ) );
-				SH_last_part = jQuery( '.noa-part-list' ).find( '.selected-part-box' ).attr( 'index' );
-				SH_last_time = jQuery( '#noa_video_1' )[0].currentTime;
+				last_play_index = parseInt( jQuery( '.noa-part-list' ).find( '.selected-part-box' ).attr( 'index' ) );
+				last_play_time = jQuery( '#noa_video_1' )[0].currentTime;
 
 				var video_path_array = target.attr( 'video_path' ).split( ',' );
 				playVideoList( video_path_array );
@@ -682,24 +814,37 @@ var hp_player = (function() {
 
 	}
 
+	function setQYVideo( result ) {
+		playVideoList( [result.data.m3u] );
+	}
+
+	function isSafari() {
+		return Object.prototype.toString.call( window.HTMLElement ).indexOf( 'Constructor' ) > 0;
+	}
+
 	function setSHVideo( result ) {
 
+		if ( isSafari() ) {
+			var url_type = '';
+		} else {
+			url_type = '_mp4'
+		}
 		SH_video_result = result;
 
 		var video_path;
 
 		if ( SH_last_res === 1 ) {
-			video_path = result.data.url_nor_mp4;
+			video_path = result.data['url_nor' + url_type];
 		} else if ( SH_last_res === 2 ) {
-			video_path = result.data.url_high_mp4;
+			video_path = result.data['url_high' + url_type];
 		} else {
-			video_path = result.data.url_super_mp4;
+			video_path = result.data['url_super' + url_type];
 		}
 
 		if ( !video_path ) {
-			video_path = result.data.url_nor_mp4;
-			if ( result.data.url_super_mp4 || !result.data.url_nor_mp4 ) {
-				video_path = result.data.url_high_mp4;
+			video_path = result.data['url_nor' + url_type];
+			if ( result.data['url_super' + url_type] || !result.data['url_nor' + url_type] ) {
+				video_path = result.data['url_high' + url_type];
 			}
 		}
 
@@ -707,7 +852,7 @@ var hp_player = (function() {
 		jQuery( '.noa-video-title' ).text( result.data.video_name );
 
 		playVideoList( video_path_array );
-		setSHVideoResolutionBoxes();
+		setSHVideoResolutionBoxes( url_type );
 
 		var api = new ServiceCaller();
 		api.callSHVideoList( playlistId, vid );
@@ -717,15 +862,26 @@ var hp_player = (function() {
 		var seed = data.seed;
 		var b = new U( seed );
 		var _videoSegsDic = {};
-		for ( var f = [], i = 0, g = 0; g < data.segs['mp4'].length; g++ ) {
-			var h = data.segs['mp4'][g], p = {};
+
+		var type = 'mp4';
+
+		if ( isSafari() ) {
+			type = '3gphd';
+		}
+
+		if ( !data.segs.hasOwnProperty( type ) ) {
+			return null;
+		}
+
+		for ( var f = [], i = 0, g = 0; g < data.segs[type].length; g++ ) {
+			var h = data.segs[type][g], p = {};
 			p.no = h.no;
 			p.size = h.size;
 			p.seconds = h.seconds;
 			h.k && (p.key = h.k);
-			p.fileId = getFileId( data.streamfileids, 'mp4', parseInt( g ), b );
-			p.type = 'mp4';
-			p.src = getVideoSrc( h.no, data, 'mp4', p.fileId );
+			p.fileId = getFileId( data.streamfileids, type, parseInt( g ), b );
+			p.type = type;
+			p.src = getVideoSrc( h.no, data, type, p.fileId );
 			f[i++] = p.src;
 		}
 		return f;
@@ -794,12 +950,31 @@ var hp_player = (function() {
 		var ep = encodeURIComponent( D( E( F( 'boa4' + "poz" + '1', [19, 1, 4, 7, 30, 14, 28, 8, 24, 17, 6, 35, 34, 16, 9, 10, 13, 22, 32, 29, 31, 21, 18, 3, 2, 23, 25, 27, 11, 20, 5, 15, 12, 0, 33, 26] ).toString(), sid + "_" + data.videoid + "_" + token ) ) );
 		var oip = 3062571840; //any number is fine
 
+
 		var video_path_array = createYMp4Url( data, sid, token, oip );
+
+		if ( !video_path_array ) {
+			var error_message = jQuery( '<span class="error error-link">该段视频没有HTML5播放源，请观看原始视频</span>' );
+			var error_message_2 = jQuery( '<span class="error-2 error-link">通常新闻和小短片没有HTML5资源，99%的电影和剧集可以播放</span>' );
+
+			jQuery( '.hp-video-player' ).append( error_message );
+			jQuery( '.hp-video-player' ).append( error_message_2 );
+
+			jQuery( '.hp-video-player' ).find( '.error-link' ).unbind( 'click' ).bind( 'click', function() {
+				jQuery( '.hp-video-player' ).remove();
+				jQuery( 'script[hp_player=true]' ).remove();
+				jQuery( 'link[hp_player=true]' ).remove();
+				jQuery( '#player' ).show();
+			} );
+
+			return;
+		}
 
 //		var video_path = 'http://pl.youku.com/playlist/m3u8?vid=' + data.videoid + '&type=mp4&ep=' + ep + '&sid=' + sid + '&token=' + token + '&ctype=12&ev=1&oip=' + oip;
 
 		jQuery( '.noa-video-title' ).text( data.title );
 		playVideoList( video_path_array );
+
 		if ( data.hasOwnProperty( 'list' ) && jQuery( '.video-list' ).length === 0 ) {
 
 //			if ( data.list.length < 1 || data.list[0].title.split( ' ' ).length < 2 ) {
@@ -842,10 +1017,12 @@ var hp_player = (function() {
 	return {
 		setYVideo: setYVideo,
 		setSHVideo: setSHVideo,
-		setSHVideoList: setSHVideoList
+		setSHVideoList: setSHVideoList,
+		setQYVideo: setQYVideo
 	};
 
-})();
+})
+	();
 
 function sh_video_list( result ) {
 	hp_player.setSHVideoList( result );
@@ -859,6 +1036,10 @@ function sh_video_json( result ) {
 function y_video_json( result ) {
 	hp_player.setYVideo( result );
 
+}
+
+function qy_video_json( result ) {
+	hp_player.setQYVideo( result );
 }
 
 //Google track codes
